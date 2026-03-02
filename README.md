@@ -21,9 +21,28 @@ The container ignores SIGTERM and continues running until it is forcibly termina
 echo $GITHUB_TOKEN | docker login ghcr.io -u <github_username> --password-stdin
 
 # Build, tag, and push the image
-docker build -t test-ecs-container-stop-timeout .
+docker buildx build --platform linux/amd64 -t test-ecs-container-stop-timeout:latest .
+
 docker tag test-ecs-container-stop-timeout:latest ghcr.io/<github_username>/test-ecs-container-stop-timeout:latest
 docker push ghcr.io/<github_username>/test-ecs-container-stop-timeout:latest
+```
+
+> NOTE: On Apple silicon (arm64) machines, you may want to build the image for amd64 architecture to ensure compatibility with ECS. You can do this using Docker Buildx:
+
+
+#### Using Amazon ECR
+
+```bash
+# Create ECR repository
+aws ecr create-repository --repository-name test-ecs-container-stop-timeout
+
+#  Authenticate Docker to ECR
+aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account_id>.dkr.ecr.<region>.amazonaws.com
+
+# Build, tag, and push the image
+docker buildx build --platform linux/amd64 -t test-ecs-container-stop-timeout:latest .
+docker tag test-ecs-container-stop-timeout:latest <account_id>.dkr.ecr.<region>.amazonaws.com/test-ecs-container-stop-timeout:latest
+docker push <account_id>.dkr.ecr.<region>.amazonaws.com/test-ecs-container-stop-timeout:latest
 ```
 
 ### 2. IAM Roles
@@ -121,6 +140,8 @@ aws ecs register-task-definition --cli-input-json file://task-definition.json
 
 ### Start the Task
 
+#### For starting the Task on Fargate
+
 ```bash
 aws ecs run-task \
   --cluster test-cluster \
@@ -128,6 +149,23 @@ aws ecs run-task \
   --launch-type FARGATE \
   --network-configuration "awsvpcConfiguration={subnets=[<subnet_id>],securityGroups=[<sg_id>],assignPublicIp=ENABLED}"
 ```
+
+#### For starting the Task on a Specific Capacity Provider (EC2)
+
+To start the ECS task on a specific EC2 capacity provider, use the `--capacity-provider-strategy` option. Do not specify `--launch-type` when using capacity providers.
+
+Example:
+
+```bash
+aws ecs run-task \
+  --cluster test-cluster \
+  --task-definition test-stop-timeout \
+  --capacity-provider-strategy capacityProvider=<your_capacity_provider>,weight=1 \
+  --network-configuration "awsvpcConfiguration={subnets=[<subnet_id>],securityGroups=[<sg_id>],assignPublicIp=ENABLED}"
+```
+
+Replace `<your_capacity_provider>` with the name of your EC2 capacity provider.
+
 
 ### Stop the Task
 
@@ -150,3 +188,26 @@ ECS Task starts
 ```
 
 By changing the `stopTimeout` value in the task definition, you can verify the wait time before forced termination. The default is **30 seconds** and the maximum is **120 seconds** on Fargate.
+
+
+## How to Measure the Time from ECS Task Stop Initiation to Completion
+
+To measure the actual time it takes for an ECS task to stop after issuing the stop command, you can use the `aws ecs describe-tasks` command and check the `stoppingAt` and `stoppedAt` fields in the output. The difference between these two timestamps represents the duration from when the stop process started to when the task was fully stopped.
+
+Example output:
+
+```json
+{
+  "tasks": [
+    {
+       ... snip...
+      "stoppedAt": "2026-03-02T11:31:21.861000+09:00",
+      "stoppedReason": "Task stopped by user",
+      "stoppingAt": "2026-03-02T11:25:05.472000+09:00",
+      "tags": []
+    }
+  ]
+}
+```
+
+By calculating the difference between `stoppingAt` and `stoppedAt`, you can determine the actual stop duration for the ECS task.
