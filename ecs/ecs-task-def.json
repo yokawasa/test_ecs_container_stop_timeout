@@ -1,0 +1,24 @@
+{
+  "family": "test-stop-timeout",
+  "executionRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "test-container",
+      "image": "<container_image_uri>",
+      "essential": true,
+      "stopTimeout": 30,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/test-stop-timeout",
+          "awslogs-region": "<region>",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512"
+}
