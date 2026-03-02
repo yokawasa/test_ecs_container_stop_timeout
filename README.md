@@ -80,32 +80,31 @@ aws ecs create-cluster --cluster-name test-cluster
 }
 ```
 
-:::note info
-**About `stopTimeout` behavior:**
+> [!NOTE]
+> **About `stopTimeout` behavior:**
+> 
+> The `stopTimeout` field is key for this test. It controls how long ECS waits after sending SIGTERM before sending SIGKILL.
+> 
+> - For **Fargate** launch type:
+>   - The default value is **30 seconds** if not specified.
+>   - The maximum value is **120 seconds (2 minutes)**.
+> - For **EC2 (non-Fargate)** launch type:
+>   - The default value is also **30 seconds** if not specified.
+>   - The maximum value is **1,200 seconds (20 minutes)**.
+> 
+> This means that if you do not set the `stopTimeout` field, ECS will wait 30 seconds after sending SIGTERM before sending SIGKILL, regardless of launch type. However, you can set a longer timeout for EC2 tasks than for Fargate tasks.
 
-The `stopTimeout` field is key for this test. It controls how long ECS waits after sending SIGTERM before sending SIGKILL.
+> [!NOTE]
+> **About `requiresCompatibilities`:**
+>
+> The `requiresCompatibilities` field specifies the launch types on which the task definition can run. Possible values are:
+> 
+> - `FARGATE`: Run tasks on AWS Fargate (serverless compute for containers)
+> - `EC2`: Run tasks on Amazon EC2 instances
+> - `EXTERNAL`: Run tasks on external instances (ECS Anywhere, e.g., on-premises)
+> 
+> You can specify one or more values in the array (e.g., `["EC2", "FARGATE"]`).
 
-- For **Fargate** launch type:
-  - The default value is **30 seconds** if not specified.
-  - The maximum value is **120 seconds (2 minutes)**.
-- For **EC2 (non-Fargate)** launch type:
-  - The default value is also **30 seconds** if not specified.
-  - The maximum value is **1,200 seconds (20 minutes)**.
-
-This means that if you do not set the `stopTimeout` field, ECS will wait 30 seconds after sending SIGTERM before sending SIGKILL, regardless of launch type. However, you can set a longer timeout for EC2 tasks than for Fargate tasks.
-:::
-
-:::note info
-**About `requiresCompatibilities`:**
-
-The `requiresCompatibilities` field specifies the launch types on which the task definition can run. Possible values are:
-
-- `FARGATE`: Run tasks on AWS Fargate (serverless compute for containers)
-- `EC2`: Run tasks on Amazon EC2 instances
-- `EXTERNAL`: Run tasks on external instances (ECS Anywhere, e.g., on-premises)
-
-You can specify one or more values in the array (e.g., `["EC2", "FARGATE"]`).
-:::
 
 Here is how to register the task definition using AWS CLI:
 
