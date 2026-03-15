@@ -194,6 +194,10 @@ By changing the `stopTimeout` value in the task definition, you can verify the w
 
 To measure the actual time it takes for an ECS task to stop after issuing the stop command, you can use the `aws ecs describe-tasks` command and check the `stoppingAt` and `stoppedAt` fields in the output. The difference between these two timestamps represents the duration from when the stop process started to when the task was fully stopped.
 
+```sh
+aws ecs describe-tasks --cluster $CLUSTER_NAME --tasks $TASK_ID
+```
+
 Example output:
 
 ```json
